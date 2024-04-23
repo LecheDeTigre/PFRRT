@@ -19,9 +19,7 @@ def getCurvilinearCoordinates(state, pt_ref):
         if (np.linalg.norm(centre-state[0:2]) <= min_dist):
             min_dist = np.linalg.norm(centre-state[0:2])
 
-    # np.exp(-min_dist*0.5*min_dist)
-
-    return np.array([v, cross_track_error, 0])
+    return np.array([v, cross_track_error, distance_along])
 
 def getHMatrix(state, pt_ref):
 
@@ -29,6 +27,8 @@ def getHMatrix(state, pt_ref):
     xc , yc = 5, 0
 
     R = 5
+    
+    s_f = 5*np.pi/2
     # np.array([[-np.sin(pt_ref[2]), np.cos(pt_ref[2]), 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 0]])
     
-    return np.array([[0, 0, 0, 1, 0], [((x - xc)*((x - xc)**2 + (y - yc)**2)**(7/2)*(R*(y - yc)**2 + (-R + np.sqrt((x - xc)**2 + (y - yc)**2))*(x - xc)**2 + (y - yc)*(R*(y - yc) + (-y + yc)*np.sqrt((x - xc)**2 + (y - yc)**2))) - (x - xc)*((x - xc)**2 + (y - yc)**2)**3*(R*(x - xc)**2*np.sqrt((x - xc)**2 + (y - yc)**2) - R*((x - xc)**2 + (y - yc)**2)**(3/2) + ((x - xc)**2 + (y - yc)**2)**2) + (R*(x - xc) + (-x + xc)*np.sqrt((x - xc)**2 + (y - yc)**2))*((x - xc)**2 + (y - yc)**2)**(9/2))/((x - xc)**2 + (y - yc)**2)**(11/2), (y - yc)*((-R + np.sqrt((x - xc)**2 + (y - yc)**2))*((x - xc)**2 + (y - yc)**2)**(9/2) + ((x - xc)**2 + (y - yc)**2)**(7/2)*(-R*(x - xc)**2 - (x - xc)*(R*(x - xc) + (-x + xc)*np.sqrt((x - xc)**2 + (y - yc)**2)) + (y - yc)*(R*(y - yc) + (-y + yc)*np.sqrt((x - xc)**2 + (y - yc)**2))) + ((x - xc)**2 + (y - yc)**2)**3*(R*(y - yc)**2*np.sqrt((x - xc)**2 + (y - yc)**2) - R*((x - xc)**2 + (y - yc)**2)**(3/2) + ((x - xc)**2 + (y - yc)**2)**2))/((x - xc)**2 + (y - yc)**2)**(11/2), 0, 0, 0], [0, 0, 0, 0, 0]])
+    return np.array([[0, 0, 0, 1, 0], [-np.sin(pt_ref[2]), np.cos(pt_ref[2]), 0, 0, 0], [0, 0, 0, 0, 0]])

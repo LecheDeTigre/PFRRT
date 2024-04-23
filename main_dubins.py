@@ -29,7 +29,7 @@ def estimatedCostToGoal(optimal_state, goal_state, expected_observation, desired
 
 def checkCollision(state):
     centres = [[5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)]]
-    radii = [0.2]
+    radii = [0.15]
 
     for (centre, radius) in zip(centres, radii):
         # import pdb; pdb.set_trace()
@@ -63,14 +63,14 @@ closest_pt_ref = circle_path.getClosestPoint(initial_state)
 N_rollouts = 100
 N_states = 10
 
-N_iter = 100
+N_iter = 50
 
 model = DubinsCar.DubinsCar()
 
 Q = np.diag([0.05, 0.05, 0.0084, 1e-2, 0.0084])*1e-4
 R = np.diag([1.0, 1e-4, 0.1])
 
-desired_observation = np.array([0., 0., 0.])
+desired_observation = np.array([0., 0., 5*np.pi/2])
 
 ds = 0.1
 
@@ -100,7 +100,7 @@ curr_node = best_node
 figure, axes = plt.subplots(2)
 
 circle_1 = plt.Circle((5., 0.), 5., fill=False)
-circle_2 = plt.Circle((5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)), 0.2, fill=True)
+circle_2 = plt.Circle((5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)), 0.15, fill=True)
 
 axes[0].set_aspect(1)
 # plt.xlim([-1., 5.])

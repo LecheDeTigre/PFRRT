@@ -78,6 +78,9 @@ class SearchTree:
     
     def getRandomNode(self):
         return random.choice(self.nodes)
+    
+    def pullBackBestNode(self):
+        self.best_node = self.best_node.parent_node
 
     def addBranch(self, tree_node, nodes, actuations):
         self.nodes.extend(nodes)
@@ -248,7 +251,7 @@ class SearchTree:
         print("root_node.state: "+str(root_node.state))
 
         circle_1 = plt.Circle((5., 0.), 5., fill=False)
-        circle_2 = plt.Circle((5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)), 0.2, fill=True)
+        circle_2 = plt.Circle((5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)), 0.15, fill=True)
 
         axes.set_aspect(1)
         plt.xlim([-1., 6.])
@@ -331,6 +334,8 @@ class SearchTree:
             
             if success:
                 self.addBranch(sampled_node, rollout_nodes, rollout_actuations)
+            elif not self.feasible_trajectory_found and choice == 0:
+                self.pullBackBestNode()
 
             print("Best node after update: "+str((self.getBestNode().state)))
             print("Best node Costs after update: "+str((self.getBestNode().cost_to_node, self.getBestNode().cost_to_goal,self.getBestNode().cost_to_node+self.getBestNode().cost_to_goal)))
