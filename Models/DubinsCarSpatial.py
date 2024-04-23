@@ -23,18 +23,18 @@ class DubinsCarSpatial(Model):
 
         return dx
 
-    def step(self, x0, u, ds):
+    def step(self, x0, u, dt):
 
         k1 = self.f(x0, u)
-        k2 = self.f(x0+ds*k1/2, u)
-        k3 = self.f(x0+ds*k2/2, u)
-        k4 = self.f(x0+ds*k3, u)
+        k2 = self.f(x0+dt*k1/2, u)
+        k3 = self.f(x0+dt*k2/2, u)
+        k4 = self.f(x0+dt*k3, u)
 
-        curr_state = x0 + ds*(k1+2*k2+2*k3+k4)/6
+        curr_state = x0 + dt*(k1+2*k2+2*k3+k4)/6
 
         return curr_state
 
-    def sampleRandomInput(self, prev_state=None, ds=None, num_samples=1):
+    def sampleRandomInput(self, prev_state=None, dt=None, num_samples=1):
 
         delta = np.random.normal(0, np.pi/2, num_samples)
         # import pdb; pdb.set_trace()

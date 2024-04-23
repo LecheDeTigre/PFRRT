@@ -39,7 +39,8 @@ class Node:
     #     return representation
 
 class SearchTree:
-    def __init__(self, root_node, N_rollouts, model, observation_model, path_reference, Q, R, ds, stateCost, estimatedCostToGoal, invalidState, checkCollision, inGoalSet, gamma):
+    def __init__(self, root_node, N_rollouts, propagation_model, observation_model, path_reference, Q, R, dt, 
+                 gamma, checkCollision, searchProblem):
         self.nodes = [root_node]
         self.edges = []
 
@@ -49,7 +50,7 @@ class SearchTree:
         self.feasible_trajectory_found = False
 
         self.N_rollouts = N_rollouts
-        self.model = model
+        self.propagation_model = propagation_model
         self.observation_model = observation_model
 
         self.path_reference = path_reference
@@ -60,13 +61,14 @@ class SearchTree:
         self.Q_inv = np.linalg.inv(self.Q)
         self.R_inv = np.linalg.inv(self.R)
 
-        self.ds = ds
+        self.dt = dt
 
-        self.stateCost = stateCost
-        self.estimatedCostToGoal = estimatedCostToGoal
-        self.invalidState = invalidState
         self.checkCollision = checkCollision
-        self.inGoalSet = inGoalSet
+        
+        self.stateCost = searchProblem.StateCost
+        self.estimatedCostToGoal = searchProblem.EstimatedCostToGoal
+        self.invalidState = searchProblem.InvalidState
+        self.inGoalSet = searchProblem.InGoalSet
 
         self.gamma = gamma
 
@@ -98,13 +100,13 @@ class SearchTree:
 
     def sampleRandomState(self, prev_state, desired_observation):
 
-        random_actuation = self.model.sampleRandomInput(prev_state=prev_state, ds = self.ds)
-        feed_forward_state = self.model.step(prev_state, random_actuation, self.ds)
+        random_actuation = self.propagation_model.sampleRandomInput(prev_state=prev_state, dt = self.dt)
+        feed_forward_state = self.propagation_model.step(prev_state, random_actuation, self.dt)
 
         pt_ref = self.path_reference.getClosestPoint(feed_forward_state)
 
         H = self.observation_model.getHMatrix(feed_forward_state, pt_ref)
-        expected_observation = self.observation_model.getCurvilinearCoordinates(feed_forward_state, pt_ref)
+        expected_observation = self.observation_model.getObservation(feed_forward_state, pt_ref)
 
         mat_1 = np.matmul(self.Q, np.transpose(H))
         mat_2 = np.matmul(H, mat_1)
@@ -115,7 +117,7 @@ class SearchTree:
         Sigma = np.linalg.inv(np.matmul(np.transpose(H), np.matmul(self.R_inv, H)) + self.Q_inv)
         next_state = feed_forward_state + np.matmul(L, desired_observation-expected_observation)
 
-        sampled_state = np.random.multivariate_normal(next_state, Sigma, 1)
+        sampled_state = np.random.multivariate_normal(next_state, Sigma, 1)[0]
         desired_future_observation = desired_observation
 
         diff = desired_future_observation-expected_observation
@@ -136,13 +138,13 @@ class SearchTree:
         return (sampled_state, random_actuation, future_observation_likelihood, expected_observation)
 
     def rolloutTrajectory(self, root_node, N_states, goal_state, desired_observation):
-        rollout_states = np.zeros([self.N_rollouts, N_states, self.model.N_states])
-        rollout_actuations = np.zeros([self.N_rollouts, N_states, self.model.N_actuations])
+        rollout_states = np.zeros([self.N_rollouts, N_states, self.propagation_model.N_states])
+        rollout_actuations = np.zeros([self.N_rollouts, N_states, self.propagation_model.N_actuations])
 
         rollout_weights = np.zeros([self.N_rollouts, N_states])
 
-        optimal_states = np.zeros([N_states, self.model.N_states])
-        optimal_actuations = np.zeros([N_states, self.model.N_actuations])
+        optimal_states = np.zeros([N_states, self.propagation_model.N_states])
+        optimal_actuations = np.zeros([N_states, self.propagation_model.N_actuations])
 
         success = True
 
@@ -222,18 +224,18 @@ class SearchTree:
                 resampled_idx = np.random.choice(np.arange(0, self.N_rollouts), self.N_rollouts, p = rollout_weights[:,k])
                 rollout_states[:, 0] = rollout_states[resampled_idx, 0]
 
-            expected_observation = self.observation_model.getCurvilinearCoordinates(optimal_states[k], self.path_reference.getClosestPoint(optimal_states[k]))
-            parent_node_observation = self.observation_model.getCurvilinearCoordinates(prev_state, self.path_reference.getClosestPoint(prev_state))
+            expected_observation = self.observation_model.getObservation(optimal_states[k], self.path_reference.getClosestPoint(optimal_states[k]))
+            parent_node_observation = self.observation_model.getObservation(prev_state, self.path_reference.getClosestPoint(prev_state))
 
-            optimal_state_cost = self.stateCost(expected_observation, desired_observation, parent_node_observation)
+            optimal_state_cost = self.stateCost(expected_observation, desired_observation)
 
             estimated_cost_to_goal = None
             
-            if self.inGoalSet(optimal_states[k], goal_state):
+            if self.inGoalSet(optimal_states[k]):
                 estimated_cost_to_goal = 0
                 self.feasible_trajectory_found = True
             else:
-                estimated_cost_to_goal = self.estimatedCostToGoal(optimal_states[k], goal_state, expected_observation, desired_observation)
+                estimated_cost_to_goal = self.estimatedCostToGoal(optimal_states[k], goal_state)
 
             optimal_nodes.append(Node(optimal_states[k], optimal_state_cost, estimated_cost_to_goal))
             
@@ -295,7 +297,7 @@ class SearchTree:
             cost_to_goal = optimal_node.cost_to_goal
 
             print("state: " + str(optimal_state))
-            print("observation: " + str(self.observation_model.getCurvilinearCoordinates(optimal_state, self.path_reference.getClosestPoint(optimal_state))))
+            print("observation: " + str(self.observation_model.getObservation(optimal_state, self.path_reference.getClosestPoint(optimal_state))))
             print("cost_to_node: " + str(cost_to_node))
             print("cost_to_goal: " + str(cost_to_goal))
 

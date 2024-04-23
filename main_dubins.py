@@ -1,62 +1,52 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ObservationModels import CurvilinearCoordinateSystemDubins
-from PFRRT import SearchTree
-from References import CirclePath
+from ObservationModels.CircularObstacle import CircularObstacle
+from ObservationModels.CurvilinearCoordinateSystemDubins import CurvilinearCoordinateSystemDubins
+from SearchProblems.SimpleCorridorTrackingProblem import SimpleCorridorTrackingProblem
+
 from Models import DubinsCar
+from PFRRT import SearchTree
+from References.CirclePath import CirclePath
 
-def inGoalSet(state, goal_state):
-    if(np.linalg.norm(state[0:2]-goal_state[0:2]) <= 0.25) and abs(state[2]-goal_state[2]) <= np.pi/12:
-        return True
-    else:
-        return False
-
-def stateCost(observation, desired_observation, parent_node_observation):
-    return np.matmul(observation-desired_observation, np.matmul(np.diag([5, 2, 1]), np.transpose(observation-desired_observation)))
-
-def estimatedCostToGoal(optimal_state, goal_state, expected_observation, desired_observation):
-    optimal_state_projection = circle_path.getClosestPoint(optimal_state)
-    goal_state_projection = circle_path.getClosestPoint(goal_state)
-
-    x, y, psi, s = optimal_state_projection[0], optimal_state_projection[1], optimal_state_projection[2], optimal_state_projection[3]
-    x_ref, y_ref, psi_ref, s_ref = goal_state_projection[0], goal_state_projection[1], goal_state_projection[2], goal_state_projection[3]
-
-    eY_ref = -(goal_state[0]-x_ref)*np.sin(psi_ref) + (goal_state[1]-y_ref)*np.cos(psi_ref)
-    eY = -(optimal_state[0]-x)*np.sin(psi) + (optimal_state[1]-y)*np.cos(psi)
-    
-    return 1.2* ((eY-eY_ref)**2 + (s-s_ref)**2)
-
-def checkCollision(state):
-    centres = [[5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)]]
-    radii = [0.15]
-
-    for (centre, radius) in zip(centres, radii):
+def checkCollision(state, obstacles):
+    for obstacle in obstacles:
         # import pdb; pdb.set_trace()
-        if (np.linalg.norm(centre-state[0][0:2]) <= radius):
+        if obstacle.checkCollision(state):
             return True
-
-    return False
-
-def invalidState(observation):
-    # import pdb; pdb.set_trace()
-    y_lim = 0.20
-    psi_lim = np.pi/3
-
-    if (-y_lim <= observation[1] and observation[1] <= y_lim):
-        return False
-    else:
-        return True
+        
+def getObstacles():
+    obstacles = []
+    
+    obstacles.append(CircularObstacle([5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)], 0.15))
+    #obstacles.append(CircularObstacle([5+4.9*np.cos(3*np.pi/4), 0+4.9*np.sin(3*np.pi/4)], 0.15))
+    
+    return obstacles
+    
+def ObstacleProximityCost(state, obstacles):
+    cost = 1.0
+    weight = 0.5
+    for obstacle in obstacles:
+        cost *= np.exp(-weight*obstacle.getObservation(state, None)**2)
+    
+    return cost
     
 initial_state = np.array([0., 0., np.pi/2, 0., 0.])
 goal_state = np.array([5., 5., 0., 0., 0.])
 
-circle_path = CirclePath.CirclePath(np.array([5., 0.]), 5.0)
+circle_path = CirclePath(np.array([5., 0.]), 5.0)
 closest_pt_ref = circle_path.getClosestPoint(initial_state)
 
 # print(closest_pt_ref)
+obstacles = getObstacles()
 
-(velocity, cross_track_error, dist) = CurvilinearCoordinateSystemDubins.getCurvilinearCoordinates(initial_state, closest_pt_ref)
+check_collision_lambda = lambda state: checkCollision(state, obstacles=obstacles)
+
+curvilinear_coordinate_system_dubins = CurvilinearCoordinateSystemDubins()
+
+simple_corridor_tracking_problem = SimpleCorridorTrackingProblem(goal_state=goal_state, GetClosestPoint=circle_path.getClosestPoint)
+
+(velocity, cross_track_error, dist) = curvilinear_coordinate_system_dubins.getObservation(initial_state, closest_pt_ref)
 
 # print(cross_track_error, heading_error)
 
@@ -72,7 +62,7 @@ R = np.diag([1.0, 1e-4, 0.1])
 
 desired_observation = np.array([0., 0., 5*np.pi/2])
 
-ds = 0.1
+dt = 0.1
 
 gamma = 0.5
 
@@ -80,16 +70,17 @@ pt_ref = circle_path.getClosestPoint(initial_state)
 
 print(pt_ref)
 
-print(CurvilinearCoordinateSystemDubins.getCurvilinearCoordinates(initial_state, pt_ref))
+print(curvilinear_coordinate_system_dubins.getObservation(initial_state, pt_ref))
 print(desired_observation)
 
-initial_state_cost = stateCost(CurvilinearCoordinateSystemDubins.getCurvilinearCoordinates(initial_state, circle_path.getClosestPoint(initial_state)), desired_observation, CurvilinearCoordinateSystemDubins.getCurvilinearCoordinates(initial_state, circle_path.getClosestPoint(initial_state)))
+initial_state_cost = simple_corridor_tracking_problem.StateCost(curvilinear_coordinate_system_dubins.getObservation(initial_state, circle_path.getClosestPoint(initial_state)), desired_observation)
 
 print(initial_state_cost)
 
-root_node = SearchTree.Node(initial_state, initial_state_cost, estimatedCostToGoal(initial_state, goal_state, None, None))
+root_node = SearchTree.Node(initial_state, initial_state_cost, simple_corridor_tracking_problem.EstimatedCostToGoal(initial_state, goal_state))
 
-search_tree = SearchTree.SearchTree(root_node, N_rollouts, model, CurvilinearCoordinateSystemDubins, circle_path, Q, R, ds, stateCost, estimatedCostToGoal, invalidState, checkCollision, inGoalSet, gamma)
+search_tree = SearchTree.SearchTree(root_node=root_node, N_rollouts=N_rollouts, propagation_model=model, observation_model=curvilinear_coordinate_system_dubins,
+                                    path_reference=circle_path, Q=Q, R=R, dt=dt, gamma=gamma, checkCollision=check_collision_lambda, searchProblem=simple_corridor_tracking_problem)
 
 best_node = search_tree.searchTrajectory(goal_state, N_states, N_iter, desired_observation)
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-def getCurvilinearCoordinates(state, pt_ref):
+def getObservation(state, pt_ref):
     
     x, y, psi = state[0], state[1], state[2]
     x_ref, y_ref, psi_ref, distance_along = pt_ref[0], pt_ref[1], pt_ref[2], pt_ref[3]

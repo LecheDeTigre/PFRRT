@@ -48,7 +48,7 @@ closest_pt_ref = circle_path.getClosestPoint(initial_state)
 
 # print(closest_pt_ref)
 
-(cross_track_error, heading_error) = CurvilinearCoordinateSystemSpatialDubins.getCurvilinearCoordinates(initial_state, closest_pt_ref)
+(cross_track_error, heading_error) = CurvilinearCoordinateSystemSpatialDubins.getObservation(initial_state, closest_pt_ref)
 
 # print(cross_track_error, heading_error)
 
@@ -64,13 +64,13 @@ R = np.diag([0.2, 0.168])*1.25e-2
 
 desired_observation = np.array([0., 0.])
 
-ds = 0.1
+dt = 0.1
 
 gamma = 0.5
 
 root_node = SearchTree.Node(initial_state, 0, 10*np.linalg.norm(initial_state[0:2]-goal_state[0:2]))
 
-search_tree = SearchTree.SearchTree(root_node, N_rollouts, model, CurvilinearCoordinateSystemSpatialDubins, circle_path, Q, R, ds, stateCost, estimatedCostToGoal, invalidState, checkCollision, inGoalSet, gamma)
+search_tree = SearchTree.SearchTree(root_node, N_rollouts, model, CurvilinearCoordinateSystemSpatialDubins, circle_path, Q, R, dt, stateCost, estimatedCostToGoal, invalidState, checkCollision, inGoalSet, gamma)
 
 best_node = search_tree.searchTrajectory(goal_state, N_states, N_iter, desired_observation)
 

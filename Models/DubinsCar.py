@@ -23,18 +23,18 @@ class DubinsCar(Model):
 
         return dx
 
-    def step(self, x0, u, ds):
+    def step(self, x0, u, dt):
 
         k1 = self.f(x0, u)
-        k2 = self.f(x0+ds*k1/2, u)
-        k3 = self.f(x0+ds*k2/2, u)
-        k4 = self.f(x0+ds*k3, u)
+        k2 = self.f(x0+dt*k1/2, u)
+        k3 = self.f(x0+dt*k2/2, u)
+        k4 = self.f(x0+dt*k3, u)
 
-        curr_state = x0 + ds*(k1+2*k2+2*k3+k4)/6
+        curr_state = x0 + dt*(k1+2*k2+2*k3+k4)/6
 
         return curr_state
 
-    def sampleRandomInput(self, prev_state, ds):
+    def sampleRandomInput(self, prev_state, dt):
 
         delta = prev_state[3]
 
@@ -45,8 +45,8 @@ class DubinsCar(Model):
         u1 = np.random.normal(0, 8*np.pi, 1)
         u2 = np.random.normal(0, 4, 1)
 
-        effective_steering_lim_max = min(steering_rate_lim, (steering_lim-delta)/ds)
-        effective_steering_lim_min = max(-steering_rate_lim, (-steering_lim-delta)/ds)
+        effective_steering_lim_max = min(steering_rate_lim, (steering_lim-delta)/dt)
+        effective_steering_lim_min = max(-steering_rate_lim, (-steering_lim-delta)/dt)
 
         u1 = np.array(min(max(u1[0], effective_steering_lim_min), effective_steering_lim_max))
         u2 = np.array(min(max(u2[0], -2), 2))
