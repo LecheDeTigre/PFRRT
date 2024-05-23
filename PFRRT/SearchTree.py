@@ -124,7 +124,7 @@ class SearchTree:
 
         norm = np.matmul(diff, np.matmul(np.linalg.inv(mat_3), np.transpose(diff)))
 
-        candidate_likelihood = np.exp(-0.5*norm)
+        candidate_likelihood = np.exp(-0.5*norm) # Needs to be a lambda
 
         future_observation_likelihood = candidate_likelihood # multivariate_normal.pdf(desired_future_observation, mean=expected_observation, cov=mat_3)
 

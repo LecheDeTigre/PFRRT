@@ -8,7 +8,7 @@ class SimpleCorridorTrackingProblem(SearchProblem):
         self.GetClosestPoint = GetClosestPoint
     
     def StateCost(self, observation, desired_observation):
-        return np.matmul(observation-desired_observation, np.matmul(np.diag([5, 2, 1]), np.transpose(observation-desired_observation)))
+        return np.matmul(observation-desired_observation, np.matmul(np.diag([5, 2, 1, 1]), np.transpose(observation-desired_observation)))
     
     def EstimatedCostToGoal(self, optimal_state, goal_state):
         optimal_state_projection = self.GetClosestPoint(optimal_state)
