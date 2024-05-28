@@ -5,13 +5,15 @@ from Models.Model import Model
 
 class DubinsCar(Model):
 
-    def __init__(self) -> None:
+    def __init__(self, R) -> None:
         super().__init__()
 
         self.L = 5.
 
         self.N_states = 5
         self.N_actuations = 2
+
+        self.R = R
 
     def f(self, x, u):
     
@@ -42,14 +44,15 @@ class DubinsCar(Model):
 
         steering_lim = 3*np.pi/8
 
-        u1 = np.random.normal(0, 8*np.pi, 1)
-        u2 = np.random.normal(0, 4, 1)
+        # import pdb; pdb.set_trace()
+
+        (u1, u2) = np.random.multivariate_normal([0, 0], self.R, (1,))[0,:]
 
         effective_steering_lim_max = min(steering_rate_lim, (steering_lim-delta)/dt)
         effective_steering_lim_min = max(-steering_rate_lim, (-steering_lim-delta)/dt)
 
-        u1 = np.array(min(max(u1[0], effective_steering_lim_min), effective_steering_lim_max))
-        u2 = np.array(min(max(u2[0], -2), 2))
+        u1 = np.array(min(max(u1, effective_steering_lim_min), effective_steering_lim_max))
+        u2 = np.array(min(max(u2, -2), 2))
 
         return np.array([u1, u2])
     

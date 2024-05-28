@@ -53,7 +53,9 @@ N_states = 10
 
 N_iter = 20
 
-model = DubinsCar.DubinsCar()
+R_in = np.diag([8*np.pi, 4])
+
+model = DubinsCar.DubinsCar(R_in)
 
 Q = np.diag([0.05, 0.05, 0.0084, 1e-2, 0.0084])*1e-4
 R = np.diag([1.0, 1e-4, 0.1, 1e-2])

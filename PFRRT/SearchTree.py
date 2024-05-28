@@ -124,7 +124,7 @@ class SearchTree:
 
         norm = np.matmul(diff, np.matmul(np.linalg.inv(mat_3), np.transpose(diff)))
 
-        candidate_likelihood = np.exp(-0.5*norm) # Needs to be a lambda
+        candidate_likelihood = np.exp(-norm/2) # Needs to be a lambda
 
         future_observation_likelihood = candidate_likelihood # multivariate_normal.pdf(desired_future_observation, mean=expected_observation, cov=mat_3)
 
@@ -145,6 +145,8 @@ class SearchTree:
 
         optimal_states = np.zeros([N_states, self.propagation_model.N_states])
         optimal_actuations = np.zeros([N_states, self.propagation_model.N_actuations])
+
+        optimal_states[0,:] = root_node.state
 
         success = True
 
@@ -194,7 +196,7 @@ class SearchTree:
                 N_eff += rollout_weights[i][k]*rollout_weights[i][k]
 
             N_w = sum_weights
-            # print(N_w)
+            # print("N_w: " + str(N_w))
 
             if N_w == 0:
                 print("Fail")
@@ -215,8 +217,10 @@ class SearchTree:
             for i in range(0, self.N_rollouts):
                 rollout_weights[i][k] = rollout_weights[i][k]/sum_weights
 
-                optimal_states[k] += rollout_weights[i][k]*rollout_states[i][k]
                 optimal_actuations[k] += rollout_weights[i][k]*rollout_actuations[i][k]
+
+                if k != 0:
+                    optimal_states[k] += rollout_weights[i][k]*rollout_states[i][k]
 
             N_eff = 1/N_eff
 
